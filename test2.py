@@ -496,7 +496,10 @@ class ExperimentalFramework():
         for size in self.sizes:
             data = data_generator_method(count=size)
             tree = tree_class()
-            time = timeit.timeit(lambda: [tree.insertElement(e) for e in data], number=1)
+            def run():
+                for e in data:
+                    tree.insertElement(e)
+            time = timeit.timeit(run, number=1)
             times.append(time)
         return times
     
@@ -512,7 +515,10 @@ class ExperimentalFramework():
                     inserted_strings.append(s)
             
             strings_to_search = data_generator_method(count=size, inserted_strings=inserted_strings)
-            time = timeit.timeit(lambda: [tree.searchElement(e) for e in strings_to_search], number=1)
+            def run():
+                for e in strings_to_search:
+                    tree.searchElement(e)
+            time = timeit.timeit(run, number=1)
             times.append(time)
 
         return times
