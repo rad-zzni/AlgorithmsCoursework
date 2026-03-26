@@ -398,7 +398,8 @@ class TestDataGenerator():
     def __init__(self, seed=27):
         random.seed(seed)
 
-    '''notes:
+    '''
+    notes:
     -since methods are called internally, seed not completely consistent depending on order that methods are called
     -low lengths and high counts for random strings might produce duplicates
     '''
@@ -485,9 +486,9 @@ class ExperimentalFramework():
         Plots timing results for all three tree implementations on one graph.
     '''
     
-    def __init__(self, repeats=3):
+    def __init__(self, repeats=4):
         self.data_generator = TestDataGenerator()
-        self.sizes = [10**i for i in range(1,6)]
+        self.sizes = [10, 100, 500, 1000, 5000, 10000, 20000, 50000, 100000]
         self.repeats = repeats
 
     def _average_time(self, build_and_run):
@@ -551,7 +552,7 @@ class ExperimentalFramework():
     
 
 # ADD YOUR TEST CODE HERE 
-framework = ExperimentalFramework(repeats=3)
+framework = ExperimentalFramework(repeats=5)
 
 # Tuples of (generator method, graph title) for testing and plotting
 insert_data_generation = [(framework.data_generator.generate_random_strings, "Insert - Random Strings"),
