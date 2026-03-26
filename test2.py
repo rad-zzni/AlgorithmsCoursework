@@ -558,9 +558,9 @@ class ExperimentalFramework():
 
 # ADD YOUR TEST CODE HERE 
 
-# ============================================================
-# CORRECTNESS AND EDGE CASE TESTS
-# ============================================================
+
+# CORRECTNESS AND EDGE  CASE TESTING
+
 
 def run_tests():
     trees = {"2-3 Tree": TwoThreeTree, "AVL Tree": AVLTree, "Scapegoat": ScapegoatTree}
