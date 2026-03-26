@@ -288,10 +288,9 @@ class ScapegoatTree(AbstractSearchInterface):
         self.max_size = max(self.max_size, self.n)
 
         depth = len(path)
-        allowed = self._log(self.n) / self._log(1 / self.alpha)
+        allowed = self._log(self.n, 1 / self.alpha)
         if depth > allowed:
             self._find_and_rebuild(path)
-
         return True
     
     def searchElement(self, element):  
@@ -329,7 +328,15 @@ class ScapegoatTree(AbstractSearchInterface):
         node.left = self._build_balanced(array, min, avg - 1)
         node.right = self._build_balanced(array, avg + 1, max)
         return node
-
+    
+    def _log(self, n, base):
+        '''Approximates log of n in given base without using the math library.'''
+        result = 0
+        while n >= base:
+            n /= base
+            result += 1
+        return result
+    
     def _find_and_rebuild(self, path):
         '''Finds the highest scapegoat node in path and rebuilds its subtree into a balanced tree.'''
         for i in range(len(path) - 1, -1, -1):
@@ -354,13 +361,7 @@ class ScapegoatTree(AbstractSearchInterface):
                         parent.right = new_subtree
 
                 return
-    def _log(self, n, base):
-        '''Approximates log of n in given base without using the math library.'''
-        result = 0
-        while n >= base:
-            n /= base
-            result += 1
-        return result
+
 import string
 import random
 

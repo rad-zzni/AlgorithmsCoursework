@@ -196,17 +196,17 @@ class AVLTree(AbstractSearchInterface):
         node.height = 1 + max(AVLGetHeight(node.left), AVLGetHeight(node.right))
         balance = AVLGetBalance(node)
         
-        # RR
+        # RR rotation
         if balance > 1 and AVLGetBalance(node.right) >= 0:
             node = self._rotateLeft(node)
-        # LL
+        # LL rotation
         elif balance < -1 and AVLGetBalance(node.left) <= 0:
             node = self._rotateRight(node)
-        # RL
+        # RL rotation
         elif balance > 1 and AVLGetBalance(node.right) < 0:
             node.right = self._rotateRight(node.right)
             node = self._rotateLeft(node)
-        # LR
+        # LR rotation
         elif balance < -1 and AVLGetBalance(node.left) > 0:
             node.left = self._rotateLeft(node.left)
             node = self._rotateRight(node)
@@ -595,8 +595,8 @@ class ExperimentalFramework():
             plt.plot(self.sizes, times, label=tree_name)
         # plt.xscale("log")
         # plt.yscale("log")
-        plt.xlabel("Dataset size (log scale)")
-        plt.ylabel("Time (s, log scale)")
+        plt.xlabel("Dataset size")
+        plt.ylabel("Time (s)")
         plt.title(title)
         plt.legend()
         plt.show()
