@@ -82,6 +82,7 @@ class ScapegoatNode:
         self.right = None
 
 
+
 class TwoThreeTree(AbstractSearchInterface):
     '''2-3 tree implementation where each node holds 1-2 values and has 2-3 children.'''
     def __init__(self):
@@ -246,7 +247,6 @@ class AVLTree(AbstractSearchInterface):
             node = self._rotateRight(node)
 
         return node, inserted
-
     
 
 
@@ -361,6 +361,7 @@ class ScapegoatTree(AbstractSearchInterface):
                         parent.right = new_subtree
 
                 return
+            
 
 import string
 import random
@@ -451,7 +452,7 @@ class TestDataGenerator():
             if s not in inserted_set:
                 misses.append(s)
         return misses
-        
+    
 
 import timeit
 import matplotlib.pyplot as plt
@@ -491,11 +492,9 @@ class ExperimentalFramework():
         self.repeats = repeats
 
     def _average_time(self, build_and_run):
-        '''Repeats build_and_run several times and returns the average timing.''' 
-        total = 0
-        for _ in range(self.repeats):
-            total += build_and_run()
-        return total / self.repeats
+        '''Returns mean time over repeated runs.'''
+        times = [build_and_run() for _ in range(self.repeats)]
+        return sum(times) / len(times)
 
     def time_insert(self, tree_class, data_generator_method):
         times = []
@@ -548,11 +547,82 @@ class ExperimentalFramework():
         plt.grid(True, which="major", linestyle="--", linewidth=0.6, alpha=0.7)
         plt.legend()
         plt.tight_layout()
-
         plt.show()
-    
+
+
 
 # ADD YOUR TEST CODE HERE 
+
+
+# CORRECTNESS AND EDGE  CASE TESTING
+
+
+def run_tests():
+    trees = {"2-3 Tree": TwoThreeTree, "AVL Tree": AVLTree, "Scapegoat": ScapegoatTree}
+    gen = TestDataGenerator()
+
+    for name, TreeClass in trees.items():
+        print(f"\n--- {name} ---")
+
+        # 1. Empty tree search
+        tree = TreeClass()
+        assert tree.searchElement("a") == False
+        print("1. Empty tree search: PASSED")
+
+        # 2. Single element insert and search
+        tree = TreeClass()
+        assert tree.insertElement("hello") == True
+        assert tree.searchElement("hello") == True
+        assert tree.searchElement("world") == False
+        print("2. Single element insert/search: PASSED")
+
+        # 3. Duplicate insertion
+        tree = TreeClass()
+        assert tree.insertElement("hello") == True
+        assert tree.insertElement("hello") == False
+        print("3. Duplicate insertion: PASSED")
+
+        # 4. Multiple elements
+        tree = TreeClass()
+        for w in ["b", "a", "c", "d", "e"]:
+            tree.insertElement(w)
+        assert all(tree.searchElement(w) for w in ["b", "a", "c", "d", "e"])
+        assert tree.searchElement("g") == False
+        print("4. Multiple elements: PASSED")
+
+        # 5. Sorted input (worst case for unbalanced trees)
+        tree = TreeClass()
+        sorted_words = sorted(["m", "n", "o", "p", "q", "r", "s", "t", "u", "v"])
+        for w in sorted_words:
+            tree.insertElement(w)
+        assert all(tree.searchElement(w) for w in sorted_words)
+        print("5. Sorted input: PASSED")
+
+        # 6. Reverse sorted input
+        tree = TreeClass()
+        for w in reversed(sorted_words):
+            tree.insertElement(w)
+        assert all(tree.searchElement(w) for w in sorted_words)
+        print("6. Reverse sorted input: PASSED")
+
+        # 7. Stress test - 10000 random strings
+        tree = TreeClass()
+        inserted = [s for s in gen.generate_random_strings(10000) if tree.insertElement(s)]
+        assert all(tree.searchElement(s) for s in inserted)
+        assert tree.searchElement("thisshouldnotexist12345") == False
+        print("7. Stress test (10,000 elements): PASSED")
+
+        # 8. Duplicate-heavy dataset
+        tree = TreeClass()
+        inserted = [s for s in gen.generate_strings_with_duplicates(1000) if tree.insertElement(s)]
+        assert all(tree.searchElement(s) for s in inserted)
+        print("8. Duplicate-heavy dataset: PASSED")
+
+run_tests()
+print("\nAll tests passed.")
+
+
+
 
 
 framework = ExperimentalFramework(repeats=3)
