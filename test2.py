@@ -367,37 +367,32 @@ import random
 
 class TestDataGenerator():
     '''
-    A class to represent a synthetic data generator.
-
-    ...
+    A class to generate synthetic string datasets for insertion and search experiments.
 
     Attributes
     ----------
-    
     seed : int
-        Random seed for reproducible results
+        Random seed for reproducibility.
 
     Methods
     -------
-    
-    generate_random_strings(count, length)
-        Generate random strings in no particular order
-    
-    generate_sorted_strings(count, length)
-        Generate strings in alphabetical order
-    
-    generate_nearly_sorted_strings(count, length, swap_fraction)
-        Generate mostly sorted strings with some swaps
-    
-    generate_strings_with_duplicates(count, length, duplicate_fraction)
-        Generate strings with some duplicates
-    
-    generate_search_hits(inserted_strings, count)
-        Generate search targets that exist in the data
-    
-    generate_search_misses(inserted_strings, count, length)
-        Generate search targets that do not exist in the data
+    generate_random_strings(count, min_length, max_length)
+        Generate random strings of varying length.
 
+    generate_sorted_strings(count)
+        Generate strings and return them in sorted (alphabetical) order.
+
+    generate_nearly_sorted_strings(count, swap_fraction)
+        Generate mostly sorted strings with a fraction of elements randomly swapped.
+
+    generate_strings_with_duplicates(count, duplicate_fraction)
+        Generate a dataset containing repeated strings.
+
+    generate_search_hits(inserted_strings, count)
+        Generate search queries guaranteed to exist in the dataset.
+
+    generate_search_misses(inserted_strings, count, length)
+        Generate search queries guaranteed not to exist in the dataset.
     '''
     
     def __init__(self, seed=27):
@@ -465,70 +460,90 @@ class ExperimentalFramework():
     '''
     A class to represent an experimental framework.
 
-    ...
-
     Attributes
     ----------
-    
-    data_generator: TestDataGenerator instance used to generate data for testing
-    sizes: different sizes of data to test trees on
+    data_generator : TestDataGenerator
+        Generator used to create synthetic datasets for experiments.
+    sizes : list[int]
+        Different dataset sizes used in the experiments.
+    repeats : int
+        Number of repeated runs used to average timings.
 
     Methods
     -------
-    
-    time_insert: times how long inserting different length string arrays take for a specific tree 
-            using a specific data generation method
+    _average_time(build_and_run)
+        Repeats an experiment several times and returns the average timing.
 
-    time_search: generates a ranodom array of string for each size and 
-            times how long it takes to search in a specific tree og different sizes 
-            uses a data generator method to genrate the strings to search for in the tree
+    time_insert(tree_class, data_generator_method)
+        Times insertion for a specific tree class using a specific input-data generator.
 
-    plot_comparison: takes results of all 3 trees timings for one function and plots them in a graph with a specified title  
+    time_search(tree_class, data_generator_method)
+        Builds a fresh tree from random strings for each size, then times searches
+        using a specific search-target generator.
 
+    plot_comparison(results, title)
+        Plots timing results for all three tree implementations on one graph.
     '''
     
-    def __init__(self):
+    def __init__(self, repeats=3):
         self.data_generator = TestDataGenerator()
         self.sizes = [10**i for i in range(1,6)]
+        self.repeats = repeats
+
+    def _average_time(self, build_and_run):
+        '''Repeats build_and_run several times and returns the average timing.''' 
+        total = 0
+        for _ in range(self.repeats):
+            total += build_and_run()
+        return total / self.repeats
 
     def time_insert(self, tree_class, data_generator_method):
         times = []
         for size in self.sizes:
-            data = data_generator_method(count=size)
-            tree = tree_class()
-            def run():
-                for e in data:
-                    tree.insertElement(e)
-            time = timeit.timeit(run, number=1)
-            times.append(time)
+            def build_and_run():
+                '''Builds a fresh tree with generated data and returns insertion timing.'''
+                data = data_generator_method(count=size)
+                tree = tree_class()
+
+                def run():
+                    for e in data:
+                        tree.insertElement(e)
+
+                return timeit.timeit(run, number=1)
+
+            times.append(self._average_time(build_and_run))
         return times
     
     def time_search(self, tree_class, data_generator_method):
         times = []
         for size in self.sizes:
-            strings = self.data_generator.generate_random_strings(count=size)
-            tree = tree_class()
-            
-            inserted_strings = []
-            for s in strings:
-                if tree.insertElement(s):
-                    inserted_strings.append(s)
-            
-            strings_to_search = data_generator_method(count=size, inserted_strings=inserted_strings)
-            def run():
-                for e in strings_to_search:
-                    tree.searchElement(e)
-            time = timeit.timeit(run, number=1)
-            times.append(time)
+            def build_and_run():
+                '''Builds a fresh tree with generated data and returns search timing.'''
+                strings = self.data_generator.generate_random_strings(count=size)
+                tree = tree_class()
 
+                inserted_strings = []
+                for s in strings:
+                    if tree.insertElement(s):
+                        inserted_strings.append(s)
+
+                strings_to_search = data_generator_method(count=size, inserted_strings=inserted_strings)
+
+                def run():
+                    for e in strings_to_search:
+                        tree.searchElement(e)
+
+                return timeit.timeit(run, number=1)
+
+            times.append(self._average_time(build_and_run))
         return times
 
     
     def plot_comparison(self, results, title):
+        plt.figure()
         for tree_name, times in results.items():
             plt.plot(self.sizes, times, label=tree_name)
         plt.xlabel("Dataset size")
-        plt.xscale("log")
         plt.ylabel("Time (s)")
         plt.title(title)
         plt.legend()
@@ -536,13 +551,13 @@ class ExperimentalFramework():
     
 
 # ADD YOUR TEST CODE HERE 
-framework = ExperimentalFramework()
+framework = ExperimentalFramework(repeats=3)
 
-# Tuples of (method name, grapgh title) for testing/plotting purposes
+# Tuples of (generator method, graph title) for testing and plotting
 insert_data_generation = [(framework.data_generator.generate_random_strings, "Insert - Random Strings"),
                           (framework.data_generator.generate_strings_with_duplicates, "Insert - Duplicated Strings"),
                           (framework.data_generator.generate_sorted_strings, "Insert - Sorted Strings"),
-                          (framework.data_generator.generate_nearly_sorted_strings, "Insert - 60% Sorted Strings")]
+                          (framework.data_generator.generate_nearly_sorted_strings, "Insert - Nearly Sorted Strings")]
 
 for method in insert_data_generation:
     results = {
@@ -552,7 +567,7 @@ for method in insert_data_generation:
     }
     framework.plot_comparison(results, method[1])
 
-# Tuples of (method name, grapgh title) for testing/plotting purposes
+# Tuples of (generator method, graph title) for testing and plotting
 search_data_generation = [(framework.data_generator.generate_search_hits, "Search - Strings in tree"),
                           (framework.data_generator.generate_search_misses, "Search - Strings not in tree")]
 
