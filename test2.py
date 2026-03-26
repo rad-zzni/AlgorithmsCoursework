@@ -490,12 +490,14 @@ class ExperimentalFramework():
         self.sizes = [100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
         self.repeats = repeats
 
-    def _average_time(self, build_and_run):
-        '''Repeats build_and_run several times and returns the average timing.''' 
-        total = 0
-        for _ in range(self.repeats):
-            total += build_and_run()
-        return total / self.repeats
+    def _timing_stats(self, build_and_run):
+        '''Returns (mean, std_dev) over repeated runs.'''
+        times = [build_and_run() for _ in range(self.repeats)]
+        mean = sum(times) / len(times)
+        if len(times) == 1:
+            return mean, 0
+        variance = sum((t - mean) ** 2 for t in times) / (len(times) - 1)
+        return mean, variance ** 0.5
 
     def time_insert(self, tree_class, data_generator_method):
         times = []
@@ -511,7 +513,7 @@ class ExperimentalFramework():
 
                 return timeit.timeit(run, number=1)
 
-            times.append(self._average_time(build_and_run))
+            times.append(self._timing_stats(build_and_run))
         return times
     
     def time_search(self, tree_class, data_generator_method):
@@ -531,14 +533,16 @@ class ExperimentalFramework():
                     for e in strings_to_search:
                         tree.searchElement(e)
                 return timeit.timeit(run, number=1)
-            times.append(self._average_time(build_and_run))
+            times.append(self._timing_stats(build_and_run))
         return times
 
     
     def plot_comparison(self, results, title):
         plt.figure(figsize=(12, 5))
         for tree_name, times in results.items():
-            plt.plot(self.sizes, times, marker='o', label=tree_name)
+            means = [t[0] for t in times]
+            errors = [t[1] for t in times]
+            plt.errorbar(self.sizes, means, yerr=errors, marker='o', capsize=3, label=tree_name)
 
         plt.xscale("log")
         plt.xticks(self.sizes, [str(size) for size in self.sizes])
@@ -553,6 +557,77 @@ class ExperimentalFramework():
     
 
 # ADD YOUR TEST CODE HERE 
+
+# ============================================================
+# CORRECTNESS AND EDGE CASE TESTS
+# ============================================================
+
+def run_tests():
+    trees = {"2-3 Tree": TwoThreeTree, "AVL Tree": AVLTree, "Scapegoat": ScapegoatTree}
+    gen = TestDataGenerator()
+
+    for name, TreeClass in trees.items():
+        print(f"\n--- {name} ---")
+
+        # 1. Empty tree search
+        tree = TreeClass()
+        assert tree.searchElement("a") == False
+        print("1. Empty tree search: PASSED")
+
+        # 2. Single element insert and search
+        tree = TreeClass()
+        assert tree.insertElement("hello") == True
+        assert tree.searchElement("hello") == True
+        assert tree.searchElement("world") == False
+        print("2. Single element insert/search: PASSED")
+
+        # 3. Duplicate insertion
+        tree = TreeClass()
+        assert tree.insertElement("hello") == True
+        assert tree.insertElement("hello") == False
+        print("3. Duplicate insertion: PASSED")
+
+        # 4. Multiple elements
+        tree = TreeClass()
+        for w in ["banana", "apple", "cherry", "date", "elderberry"]:
+            tree.insertElement(w)
+        assert all(tree.searchElement(w) for w in ["banana", "apple", "cherry", "date", "elderberry"])
+        assert tree.searchElement("grape") == False
+        print("4. Multiple elements: PASSED")
+
+        # 5. Sorted input (worst case for unbalanced trees)
+        tree = TreeClass()
+        sorted_words = sorted(["m", "n", "o", "p", "q", "r", "s", "t", "u", "v"])
+        for w in sorted_words:
+            tree.insertElement(w)
+        assert all(tree.searchElement(w) for w in sorted_words)
+        print("5. Sorted input: PASSED")
+
+        # 6. Reverse sorted input
+        tree = TreeClass()
+        for w in reversed(sorted_words):
+            tree.insertElement(w)
+        assert all(tree.searchElement(w) for w in sorted_words)
+        print("6. Reverse sorted input: PASSED")
+
+        # 7. Stress test - 10000 random strings
+        tree = TreeClass()
+        inserted = [s for s in gen.generate_random_strings(10000) if tree.insertElement(s)]
+        assert all(tree.searchElement(s) for s in inserted)
+        assert tree.searchElement("thisshouldnotexist12345") == False
+        print("7. Stress test (10,000 elements): PASSED")
+
+        # 8. Duplicate-heavy dataset
+        tree = TreeClass()
+        inserted = [s for s in gen.generate_strings_with_duplicates(1000) if tree.insertElement(s)]
+        assert all(tree.searchElement(s) for s in inserted)
+        print("8. Duplicate-heavy dataset: PASSED")
+
+run_tests()
+print("\nAll tests passed!")
+
+
+
 
 
 framework = ExperimentalFramework(repeats=3)
