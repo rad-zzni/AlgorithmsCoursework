@@ -140,13 +140,13 @@ class TwoThreeTree(AbstractSearchInterface):
 
         return True
     
-    # findNode only returns None if the element is in the tree already
+    # _findNode returns None only when the element is already present.
     def searchElement(self, element):
         '''Searches for element in the 2-3 tree. Returns True if found, False otherwise.'''
         if not self.root: return False
         return self._findNode(element) == None
     
-    # Returns the node to insert an element, if it is already in the tree returns None 
+    # Returns the leaf where a new element should be inserted, or None if it already exists.
     def _findNode(self, element):    
         '''Returns the leaf node where element should be inserted, or None if already present.'''
         node = self.root
@@ -398,13 +398,12 @@ class TestDataGenerator():
     def __init__(self, seed=27):
         random.seed(seed)
 
-    '''
-    notes:
-    -since methods are called internally, seed not completely consistent depending on order that methods are called
-    -low lengths and high counts for random strings might produce duplicates
-    '''
-    # Insert test methods
-    #Method 1: Random order
+    # Notes:
+    # - Reproducibility depends on the order in which generator methods are called,
+    #   because they all share Python's global random state.
+    # - Short string lengths combined with very large counts may naturally produce duplicates.
+    # Insertion dataset generators
+    # Random order
     def generate_random_strings(self, count, min_length=4, max_length=16):
         strings = []
         for i in range(count):
@@ -413,13 +412,13 @@ class TestDataGenerator():
             strings.append(s)
         return strings
     
-    #Method 2: Sorted (alphabetical) order
+    # Sorted (alphabetical) order
     def generate_sorted_strings(self, count):
         strings = self.generate_random_strings(count)
         strings.sort()
         return strings
     
-    #Method 3: Nearly sorted (mostly sorted with ~5% swaps)
+    # Nearly sorted (mostly sorted with random swaps)
     def generate_nearly_sorted_strings(self, count, swap_fraction=0.2):
         strings = self.generate_sorted_strings(count)
         num_swaps = int(count * swap_fraction)
@@ -429,7 +428,7 @@ class TestDataGenerator():
             strings[idx1], strings[idx2] = strings[idx2], strings[idx1]
         return strings
     
-    #Method 4: Strings with duplicates
+    # Strings with duplicates
     def generate_strings_with_duplicates(self, count, duplicate_fraction=0.4):
         unique_count = int(count * (1 - duplicate_fraction))
         unique_strings = self.generate_random_strings(unique_count)
@@ -438,12 +437,12 @@ class TestDataGenerator():
         random.shuffle(result)
         return result
     
-    # Search test methods
-    #Method 5: Search targets to be found
+    # Search dataset generators
+    # Search targets that should be found
     def generate_search_hits(self, inserted_strings, count):
         return random.choices(inserted_strings, k=count)
     
-    #Method 6: Search targets not to be found
+    # Search targets that should not be found
     def generate_search_misses(self, inserted_strings, count, length=8):
         inserted_set = set(inserted_strings)
         misses = []
@@ -486,9 +485,9 @@ class ExperimentalFramework():
         Plots timing results for all three tree implementations on one graph.
     '''
     
-    def __init__(self, repeats=4):
+    def __init__(self, repeats=3):
         self.data_generator = TestDataGenerator()
-        self.sizes = [10, 100, 500, 1000, 5000, 10000, 20000, 50000, 100000]
+        self.sizes = [100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
         self.repeats = repeats
 
     def _average_time(self, build_and_run):
@@ -527,32 +526,36 @@ class ExperimentalFramework():
                 for s in strings:
                     if tree.insertElement(s):
                         inserted_strings.append(s)
-
                 strings_to_search = data_generator_method(count=size, inserted_strings=inserted_strings)
-
                 def run():
                     for e in strings_to_search:
                         tree.searchElement(e)
-
                 return timeit.timeit(run, number=1)
-
             times.append(self._average_time(build_and_run))
         return times
 
     
     def plot_comparison(self, results, title):
-        plt.figure()
+        plt.figure(figsize=(12, 5))
         for tree_name, times in results.items():
-            plt.plot(self.sizes, times, label=tree_name)
-        plt.xlabel("Dataset size")
-        plt.ylabel("Time (s)")
+            plt.plot(self.sizes, times, marker='o', label=tree_name)
+
+        plt.xscale("log")
+        plt.xticks(self.sizes, [str(size) for size in self.sizes])
+        plt.xlabel("Dataset size (logged)")
+        plt.ylabel("Time (seconds)")
         plt.title(title)
+        plt.grid(True, which="major", linestyle="--", linewidth=0.6, alpha=0.7)
         plt.legend()
+        plt.tight_layout()
+
         plt.show()
     
 
 # ADD YOUR TEST CODE HERE 
-framework = ExperimentalFramework(repeats=5)
+
+
+framework = ExperimentalFramework(repeats=3)
 
 # Tuples of (generator method, graph title) for testing and plotting
 insert_data_generation = [(framework.data_generator.generate_random_strings, "Insert - Random Strings"),
